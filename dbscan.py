@@ -7,12 +7,16 @@ This is a simple implementation of DBSCAN intended to explain the algorithm.
 
 import numpy
 
-def MyDBSCAN(D, eps, MinPts):
+def MyDBSCAN(D, eps, MinPts, dist):
     """
     Cluster the dataset `D` using the DBSCAN algorithm.
     
-    MyDBSCAN takes a dataset `D` (a list of vectors), a threshold distance
-    `eps`, and a required number of points `MinPts`.
+    MyDBSCAN takes a dataset `D` (a list of objects), a threshold distance
+    `eps`, a required number of points `MinPts`, and a distance function `dist`.
+
+    `dist` should take any two elements in `D` and assign a distance between them.
+    The distance function it implements should be a metric (in the mathematical
+    sense of the term).
     
     It will return a list of cluster labels. The label -1 means noise, and then
     the clusters are numbered starting from 1.
@@ -44,7 +48,7 @@ def MyDBSCAN(D, eps, MinPts):
            continue
         
         # Find all of P's neighboring points.
-        NeighborPts = regionQuery(D, P, eps)
+        NeighborPts = regionQuery(D, P, eps, dist)
         
         # If the number is below MinPts, this point is noise. 
         # This is the only condition under which a point is labeled 
@@ -58,13 +62,13 @@ def MyDBSCAN(D, eps, MinPts):
         # seed for a new cluster.    
         else: 
            C += 1
-           growCluster(D, labels, P, NeighborPts, C, eps, MinPts)
+           growCluster(D, labels, P, NeighborPts, C, eps, MinPts, dist)
     
     # All data has been clustered!
     return labels
 
 
-def growCluster(D, labels, P, NeighborPts, C, eps, MinPts):
+def growCluster(D, labels, P, NeighborPts, C, eps, MinPts, dist):
     """
     Grow a new cluster with label `C` from the seed point `P`.
     
@@ -79,6 +83,8 @@ def growCluster(D, labels, P, NeighborPts, C, eps, MinPts):
       `C`      - The label for this new cluster.  
       `eps`    - Threshold distance
       `MinPts` - Minimum required number of neighbors
+      `dist`   - Distance function on any pair of elements in `D`. Must
+                 implement a metric (in the mathematical sense of the term).
     """
 
     # Assign the cluster label to the seed point.
@@ -108,7 +114,7 @@ def growCluster(D, labels, P, NeighborPts, C, eps, MinPts):
             labels[Pn] = C
             
             # Find all the neighbors of Pn
-            PnNeighborPts = regionQuery(D, Pn, eps)
+            PnNeighborPts = regionQuery(D, Pn, eps, dist)
             
             # If Pn has at least MinPts neighbors, it's a branch point!
             # Add all of its neighbors to the FIFO queue to be searched. 
@@ -126,13 +132,16 @@ def growCluster(D, labels, P, NeighborPts, C, eps, MinPts):
     # We've finished growing cluster C!
 
 
-def regionQuery(D, P, eps):
+def regionQuery(D, P, eps, dist):
     """
     Find all points in dataset `D` within distance `eps` of point `P`.
     
     This function calculates the distance between a point P and every other 
     point in the dataset, and then returns only those points which are within a
     threshold distance `eps`.
+
+    The distance function `dist` is used to calculate distance. It must implement
+    a metric (in the mathematical sense of the term).
     """
     neighbors = []
     
@@ -140,7 +149,7 @@ def regionQuery(D, P, eps):
     for Pn in range(0, len(D)):
         
         # If the distance is below the threshold, add it to the neighbors list.
-        if numpy.linalg.norm(D[P] - D[Pn]) < eps:
+        if dist(D[P], D[Pn]) < eps:
            neighbors.append(Pn)
             
     return neighbors
